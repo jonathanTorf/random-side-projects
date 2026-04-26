@@ -17,8 +17,8 @@ namespace almond
         //float omega0;
         //float omega1;
         float c = 0.002f;
-        bool reletiveC = false;
-        int size = 100;
+        bool reletiveC = true;
+        int size = 1000;
 
         float simulationTime = 5.5f;
         float timeStep = 0.01f;
