@@ -1,0 +1,272 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Reflection.Metadata;
+using System.Windows.Forms;
+
+namespace almond
+{
+    public partial class Form1 : Form
+    {
+        //float theta0;
+        //float theta1;
+        //float omega0;
+        //float omega1;
+        float c = 0.1f;
+
+        int size = 550;
+
+        float g = 9.81f;
+
+        float m0 = 2;
+        float m1 = 2;
+
+        float l0 = 10;
+        float l1 = 10;
+
+        int width = 5000;
+        int height = 5000;
+
+        float simulationTime = 60;
+        float timeStep = 0.005f;
+        float subStep;
+
+        //int jDevider = 250;
+        //int printDevider = -1;
+
+        List<float> theta0list;
+        Color[] pixels;
+        Bitmap framebuffer;
+
+        public Form1()
+        {
+            InitializeComponent();
+
+            pixels = new Color[width * height];
+            framebuffer = new Bitmap(width, height);
+
+            this.ClientSize = new Size(width, height);
+
+            c = size / 6.2831f * 2;
+            subStep = timeStep / 10;
+
+            //setPixel(10, 10, Color.Red);
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount / 2
+            };
+            //int k = 0;
+            int localSize = size;
+            int logStep = (int)(localSize / 10);
+
+            // Initialize the list to hold results for each simulation cell
+            theta0list = new List<float>(localSize * localSize);
+
+            var sw = Stopwatch.StartNew();
+            Console.WriteLine("Starting multythred simulation.");
+            Parallel.For(0, size, options, i =>
+            {
+                for (int j = 0; j < localSize; j++)
+                {
+                    calcPen(i, j);
+                }
+                if (i % logStep == 0) Console.WriteLine($"{i} of {size} rows compleated at: T = {sw.ElapsedMilliseconds / 1000}s.");
+            });
+            sw.Stop();
+            if (sw.ElapsedMilliseconds < 60)
+                Console.WriteLine($"Simulation ended at: T = {sw.ElapsedMilliseconds / 1000}s");
+            else
+            {
+                float m = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 / 60));
+                float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
+                Console.WriteLine($"Simulation ended at: T = {m}:{s}m");
+            }
+
+            Console.WriteLine("Starting coloring");
+            sw.Restart();
+            for (int i = 0; i < localSize; i++)
+            {
+                for (int j = 0; j < localSize; j++)
+                {
+                    calcColor(theta0list[0], i, j);
+                    theta0list.RemoveAt(0);
+                }
+            }
+            this.BackColor = Color.Black;
+            render();
+            Invalidate();
+        }
+
+        public void setPixel(int x, int y, Color c)
+        {
+            if (x < 0 || y < 0 || x >= width || y >= height) return;
+            pixels[x + y * width] = c;
+        }
+
+        void render()
+        {
+            var data = framebuffer.LockBits(
+                new Rectangle(0, 0, width, height),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format32bppArgb);
+
+            int[] argb = new int[width * height];
+            for (int i = 0; i < argb.Length; i++)
+            {
+                argb[i] = pixels[i].ToArgb();
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(argb, 0, data.Scan0, argb.Length);
+
+            framebuffer.UnlockBits(data);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.InterpolationMode =
+                System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+
+            e.Graphics.DrawImage(
+                framebuffer,
+                new Rectangle(0, 0, width, height));
+        }
+
+        /*float bottom()
+        {
+            return l1 * (2 * m0 + m1 - m1 * (float)Math.Cos(2 * theta0 - 2 * theta1));
+        }*/
+
+        /*float calcTheta0()
+        {
+            float step0 = (-g * (2 * m0 + m1) * MathF.Sin(theta0));
+            float step1 = m1 * g * MathF.Sin(theta0 - 2 * theta1);
+            float step2 = 2 * MathF.Sin(theta0 - theta1) * m1;
+            float step3 = v1 * v1 * l1 + v0 * v0 * l0 * MathF.Cos(theta0 - theta1);
+            float top = step0 - step1 - step2 * step3;
+
+            return top / bottom();
+        }
+
+        float calcTheta1()
+        {
+            float step0 = 2 * MathF.Sin(theta0 - theta1);
+            float step2 = v0 * v0 * l0 * (m0 + m1);
+            float step3 = g * (m0 + m1) * MathF.Cos(theta0);
+            float step4 = v1 * v1 * l1 * m1 * MathF.Cos(theta0 - theta1);
+            float top = step0 * (step2 + step3 + step4);
+
+            return top / bottom();
+        }
+
+        float getEnergy()
+        {
+            float T =
+                0.5f * m0 * (l0 * omega1) * (l0 * omega1) +
+                0.5f * m1 * (
+                    (l0 * omega0) * (l0 * omega0) +
+                    (l1 * omega1) * (l1 * omega1) +
+                    2 * l0 * l1 * omega0 * omega1 * MathF.Cos(theta0 - theta1)
+                );
+
+            float V =
+                -(m0 + m1) * g * l0 * MathF.Cos(theta0)
+                - m1 * g * l1 * MathF.Cos(theta1);
+
+            return T + V;
+        }*/
+
+        /*float altGetEnergy()
+        {
+            float pe = -(m0 + m1) * g * l0 * (float)Math.Cos(theta0) - m1 * g * l1 * (float)Math.Cos(theta1);
+            float ke = 0.5f * m0 * ((l0 * v0) * (l0 * v0)) + 0.5f * m0 * ((l0 + v0) * (l0 + v0) + (l1 + v1) * (l1 + v1) + 2 * l0 * l1 * v0 * v1 * (float)Math.Cos(theta0 - theta1));
+
+            return pe + ke;
+        }*/
+
+        float toDegrees(float radians)
+        {
+            return MathF.Abs(radians * 180f / MathF.PI) % 360 - 180;
+        }
+
+        /*void vtn0(int j)
+        {
+            setPixel(j / jDevider, (int)theta0 + 600, Color.Red);
+            //setPixel(j / jDevider, (int)theta1 + 600, Color.Pink);
+            if ((int)theta0 == (int)theta1) setPixel(j / jDevider, (int)theta0, Color.White);
+        }
+
+        void vtn1()
+        {
+            setPixel(((int)theta0 / 5) + 1000, ((int)theta1 / 5) + 500, Color.Green);
+            //setPixel(1000, 500, Color.Orange);
+        }*/
+
+        /*void drawPixel(int i, int j)
+        {
+            int r = 0;
+            int b = 0;
+            if (toDegrees(theta0) >= 0)
+                r = (int)(toDegrees(theta0) / 360 * 255);
+            else
+                b = (int)(MathF.Abs(toDegrees(theta0)) / 360 * 255);
+            setPixel(i, j, Color.FromArgb(r, 0, b));
+        }*/
+
+        void calcPen(int ci, int cj)
+        {
+            float theta0 = (ci - size / 2) * c;
+            float theta1 = (cj - size / 2) * c;
+
+            float omega0 = 0;
+            float omega1 = 0;
+
+            float v0 = 0;
+            float v1 = 0;
+
+            int j = 0;
+
+            float localSubStep = subStep;
+            for (double i = 0; i < simulationTime; i += timeStep)
+            {
+                for (int k = 0; k < 10; k++)
+                {
+                    float cash = theta0 - theta1;
+                    float cashSin = MathF.Sin(cash);
+                    float cashCos = MathF.Cos(cash);
+
+                    float bottom = l1 * (2 * m0 + m1 - m1 * (float)Math.Cos(2 * theta0 - 2 * theta1));
+
+                    float step0 = (-g * (2 * m0 + m1) * MathF.Sin(theta0));
+                    float step1 = m1 * g * MathF.Sin(theta0 - 2 * theta1);
+                    float step2 = 2 * cashSin * m1;
+                    float step3 = v1 * v1 * l1 + v0 * v0 * l0 * cashCos;
+                    float top0 = step0 - step1 - step2 * step3;
+
+                    float step01 = 2 * cashSin;
+                    float step21 = v0 * v0 * l0 * (m0 + m1);
+                    float step31 = g * (m0 + m1) * MathF.Cos(theta0);
+                    float step41 = v1 * v1 * l1 * m1 * cashCos;
+                    float top1 = step01 * (step21 + step31 + step41);
+
+                    omega0 += (top0 / bottom) * localSubStep;
+                    omega1 += (top1 / bottom) * localSubStep;
+
+                    theta0 += omega0 * localSubStep;
+                    theta1 += omega1 * localSubStep;
+                }
+            }
+            theta0list.Add(theta0);
+        }
+
+        void calcColor(float ang, int x, int y)
+        {
+            float cr = (MathF.Sin(ang) + 1f) * 0.5f;
+            float cg = (MathF.Sin(ang + 2f * MathF.PI / 3f) + 1f) * 0.5f;
+            float cb = (MathF.Sin(ang + 4f * MathF.PI / 3f) + 1f) * 0.5f;
+            setPixel(x, y, Color.FromArgb((int)(cr * 255), (int)(cg * 255), (int)(cb * 255)));
+        }
+    }
+}

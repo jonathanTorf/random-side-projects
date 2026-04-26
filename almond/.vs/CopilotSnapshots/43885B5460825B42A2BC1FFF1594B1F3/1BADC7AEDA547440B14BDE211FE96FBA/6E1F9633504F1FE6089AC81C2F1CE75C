@@ -1,0 +1,67 @@
+﻿using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Windows.Forms;
+
+namespace almond
+{
+    public partial class Form1 : Form
+    {
+        int width = 200;
+        int height = 120;
+
+        Color[] pixels;
+        Bitmap framebuffer;
+
+        public Form1()
+        {
+            InitializeComponent();
+
+            pixels = new Color[width * height];
+            framebuffer = new Bitmap(width, height);
+
+            this.ClientSize = new Size(width * 4, height * 4);
+
+            // test pattern
+            SetPixel(10, 10, Color.Red);
+
+            Render();
+            Invalidate();
+        }
+
+        public void SetPixel(int x, int y, Color c)
+        {
+            if (x < 0 || y < 0 || x >= width || y >= height) return;
+            pixels[x + y * width] = c;
+        }
+
+        void Render()
+        {
+            var data = framebuffer.LockBits(
+                new Rectangle(0, 0, width, height),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format32bppArgb);
+
+            // Replace unsafe pointer access with a Marshal.Copy to avoid requiring /unsafe
+            int[] argb = new int[width * height];
+            for (int i = 0; i < argb.Length; i++)
+            {
+                argb[i] = pixels[i].ToArgb();
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(argb, 0, data.Scan0, argb.Length);
+
+            framebuffer.UnlockBits(data);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.InterpolationMode =
+                System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+
+            e.Graphics.DrawImage(
+                framebuffer,
+                new Rectangle(0, 0, width * 4, height * 4));
+        }
+    }
+}}
