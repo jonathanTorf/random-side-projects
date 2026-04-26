@@ -17,10 +17,12 @@ namespace almond
         //float omega0;
         //float omega1;
         float c = 0.002f;
-        bool reletiveC = false;
+        bool reletiveC = true;
+        bool saveImage = true;
+        bool skipRenderWait = true;
         int size = 200;
 
-        float simulationTime = 5.5f;
+        float simulationTime = 6.0f;
         float timeStep = 0.01f;
 
         float l0 = 2f;
@@ -35,8 +37,7 @@ namespace almond
         int width = 1;
         int height = 1;
 
-        //float simulationTime = 60;
-        //float timeStep = 0.005f;
+        String frameTime;
         float subStep;
 
         //int jDevider = 250;
@@ -45,7 +46,6 @@ namespace almond
         List<float> theta0list;
         Color[] pixels;
         Bitmap framebuffer;
-        bool saveImage = true;
 
         public Form1()
         {
@@ -83,17 +83,18 @@ namespace almond
                     {
                         calcPen(i, j);
                     }
-                    if (i % logStep == 0) Console.WriteLine($"{i} of {size} rows compleated at: T = {sw.ElapsedMilliseconds}ms.");
+                    if (i % logStep == 0) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
                 });
                 sw.Stop();
                 if (sw.ElapsedMilliseconds / 1000 < 60)
-                    Console.WriteLine($"Simulation ended at: T = {sw.ElapsedMilliseconds / 1000}s");
+                    frameTime = $"{sw.ElapsedMilliseconds / 1000}s";
                 else
                 {
                     float m = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 / 60));
                     float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
-                    Console.WriteLine($"Simulation ended at: T = {m}:{s}m");
+                    frameTime = $"{m}:{s}m";
                 }
+                Console.WriteLine($"Simulation ended at: T = {frameTime}");
 
                 /*Console.WriteLine("Starting coloring");
                 sw.Restart();
@@ -117,10 +118,13 @@ namespace almond
                     float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
                     Console.WriteLine($"Coloring ended at: T = {m}:{s}m");
                 }*/
-                for (int i = 0; i < 3; i++)
+                if (!skipRenderWait)
                 {
-                    Console.WriteLine($"Rendering in {i * -1 + 3}...");
-                    Thread.Sleep(1000);
+                    for (int i = 0; i < 3; i++)
+                    {
+                        Console.WriteLine($"Rendering in {i * -1 + 3}...");
+                        Thread.Sleep(1000);
+                    }
                 }
 
                 Console.WriteLine("Rendering canvas...");
@@ -282,17 +286,14 @@ namespace almond
 
         void saveToDownloads(string fileName)
         {
-            string downloads = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Downloads"
-            );
+            string downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            String cdata = $"rC-{reletiveC}_c-{c}";
 
-            String cdata = $"reletiveC-{reletiveC}_c-{c}";
-            if (!reletiveC) cdata += $"_centerX-{centerX}_centerY-{centerY}";
-            string filePath = Path.Combine(
-                downloads,
-                $"{fileName}_time-{DateTime.Now:yyyyMMdd_HHmmss}_size-{size}_simulationTime-{simulationTime}s_{cdata}_l0-{l0}_l1-{l1}_m0-{m0}_m1-{m1}_g-{g}.png"
-            );
+            if (!reletiveC) cdata += $"_cX-{centerX}_cY-{centerY}";
+            String fn = $"{fileName}_dNt-{DateTime.Now:yyyyMMdd_HHmmss}_rt-{frameTime}_size-{size}_st-{simulationTime}s_{cdata}_l0-{l0}_l1-{l1}_m0-{m0}_m1-{m1}";
+            string filePath = Path.Combine(downloads, fn);
+            if (filePath.Length > 255) { filePath = filePath.Substring(0, 255); }
+            filePath += ".png";
 
             framebuffer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
 
