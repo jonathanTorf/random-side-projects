@@ -17,8 +17,8 @@ namespace almond
         //float omega0;
         //float omega1;
         float c = 0.002f;
-        bool reletiveC = true;
-        int size = 1000;
+        bool reletiveC = false;
+        int size = 200;
 
         float simulationTime = 5.5f;
         float timeStep = 0.01f;
@@ -29,8 +29,8 @@ namespace almond
         float m1 = 1.2f;
         float g = 9.81f;
 
-        float centerX = 2.5f;
-        float centerY = 1.8f;
+        float centerX = 3.5f;
+        float centerY = -1.8f;
 
         int width = 1;
         int height = 1;
@@ -287,9 +287,11 @@ namespace almond
                 "Downloads"
             );
 
+            String cdata = $"reletiveC-{reletiveC}_c-{c}";
+            if (!reletiveC) cdata += $"_centerX-{centerX}_centerY-{centerY}";
             string filePath = Path.Combine(
                 downloads,
-                $"{fileName}_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+                $"{fileName}_time-{DateTime.Now:yyyyMMdd_HHmmss}_size-{size}_simulationTime-{simulationTime}s_{cdata}_l0-{l0}_l1-{l1}_m0-{m0}_m1-{m1}_g-{g}.png"
             );
 
             framebuffer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
