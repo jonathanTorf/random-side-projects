@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Reflection.Metadata;
 using System.Windows.Forms;
+using System.IO;
 
 namespace almond
 {
@@ -17,22 +18,22 @@ namespace almond
         //float omega1;
         float c = 0.002f;
         bool reletiveC = false;
-        int size = 750;
+        int size = 100;
 
         float simulationTime = 5.5f;
-        float timeStep       = 0.01f;
+        float timeStep = 0.01f;
 
         float l0 = 2f;
         float l1 = 1f;
         float m0 = 0.4f;
         float m1 = 1.2f;
-        float g  = 9.81f;
+        float g = 9.81f;
 
         float centerX = 2.5f;
         float centerY = 1.8f;
 
-        int width = 5000;
-        int height = 5000;
+        int width = 1;
+        int height = 1;
 
         //float simulationTime = 60;
         //float timeStep = 0.005f;
@@ -44,12 +45,16 @@ namespace almond
         List<float> theta0list;
         Color[] pixels;
         Bitmap framebuffer;
+        bool saveImage = true;
 
         public Form1()
         {
             try
             {
                 InitializeComponent();
+
+                width = size;
+                height = size;
 
                 pixels = new Color[width * height];
                 framebuffer = new Bitmap(width, height);
@@ -112,8 +117,9 @@ namespace almond
                     float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
                     Console.WriteLine($"Coloring ended at: T = {m}:{s}m");
                 }*/
-                for (int i = 0; i < 3; i++) { 
-                    Console.WriteLine($"Rendering in {i * -1 + 3}..."); 
+                for (int i = 0; i < 3; i++)
+                {
+                    Console.WriteLine($"Rendering in {i * -1 + 3}...");
                     Thread.Sleep(1000);
                 }
 
@@ -121,6 +127,7 @@ namespace almond
                 this.BackColor = Color.Black;
                 render();
                 Invalidate();
+                if (saveImage) saveToDownloads("almond");
             }
             catch (Exception ex)
             {
@@ -271,6 +278,23 @@ namespace almond
             float cg = (MathF.Sin(ang + 2f * MathF.PI / 3f) + 1f) * 0.5f;
             float cb = (MathF.Sin(ang + 4f * MathF.PI / 3f) + 1f) * 0.5f;
             setPixel(x, y, Color.FromArgb((int)(cr * 255), (int)(cg * 255), (int)(cb * 255)));
+        }
+
+        void saveToDownloads(string fileName)
+        {
+            string downloads = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads"
+            );
+
+            string filePath = Path.Combine(
+                downloads,
+                $"{fileName}_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+            );
+
+            framebuffer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+
+            Console.WriteLine($"Image saved to: {filePath}");
         }
     }
 }

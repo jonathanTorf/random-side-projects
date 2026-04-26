@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Jonatan\\source\\repos\\almond\\almond\\almond.csproj",
+      "projectUniqueName": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\almond.csproj",
       "projectName": "almond",
-      "projectPath": "C:\\Users\\Jonatan\\source\\repos\\almond\\almond\\almond.csproj",
+      "projectPath": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\almond.csproj",
       "packagesPath": "C:\\Users\\Jonatan\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Jonatan\\source\\repos\\almond\\almond\\obj\\",
+      "outputPath": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
