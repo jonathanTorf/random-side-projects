@@ -16,23 +16,25 @@ namespace almond
         //float theta1;
         //float omega0;
         //float omega1;
-        float c = 0.002f;
+        float c = 0.005f;
         bool reletiveC = true;
         bool saveImage = true;
         bool skipRenderWait = true;
-        int size = 200;
+        bool damping = true;
+        bool showInfoText = false;
+        int size = 250;
 
-        float simulationTime = 6.0f;
+        float simulationTime = 5.5f;
         float timeStep = 0.01f;
 
-        float l0 = 2f;
+        float l0 = 1f;
         float l1 = 1f;
-        float m0 = 0.4f;
-        float m1 = 1.2f;
+        float m0 = 1f;
+        float m1 = 1f;
         float g = 9.81f;
 
-        float centerX = 3.5f;
-        float centerY = -1.8f;
+        float centerX = 0f;
+        float centerY = 0f;
 
         int width = 1;
         int height = 1;
@@ -53,85 +55,67 @@ namespace almond
             {
                 InitializeComponent();
 
-                width = size;
-                height = size;
-
-                pixels = new Color[width * height];
-                framebuffer = new Bitmap(width, height);
-
-                this.ClientSize = new Size(width, height);
-
-                if (reletiveC) c = MathF.PI * 2 / size;
-                subStep = timeStep / 10;
-
-                //setPixel(10, 10, Color.Red);
-                var options = new ParallelOptions
+                for (int loop = 0; loop < 10; loop++)
                 {
-                    MaxDegreeOfParallelism = Environment.ProcessorCount / 2
-                };
-                //int k = 0;
-                int localSize = size;
-                int logStep = (int)(localSize / 10);
+                    l1 = loop;
+                    width = size;
+                    height = size;
 
-                theta0list = new List<float>(localSize * localSize);
+                    pixels = new Color[width * height];
+                    framebuffer = new Bitmap(width, height);
 
-                var sw = Stopwatch.StartNew();
-                Console.WriteLine("Starting multythred simulation.");
-                Parallel.For(0, localSize, options, i =>
-                {
-                    for (int j = 0; j < localSize; j++)
+                    this.ClientSize = new Size(width, height);
+
+                    if (reletiveC) c = MathF.PI * 2 / size;
+                    subStep = timeStep / 10;
+
+                    //setPixel(10, 10, Color.Red);
+                    var options = new ParallelOptions
                     {
-                        calcPen(i, j);
-                    }
-                    if (i % logStep == 0) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
-                });
-                sw.Stop();
-                if (sw.ElapsedMilliseconds / 1000 < 60)
-                    frameTime = $"{sw.ElapsedMilliseconds / 1000}s";
-                else
-                {
-                    float m = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 / 60));
-                    float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
-                    frameTime = $"{m}:{s}m";
-                }
-                Console.WriteLine($"Simulation ended at: T = {frameTime}");
+                        MaxDegreeOfParallelism = Environment.ProcessorCount / 2
+                    };
+                    //int k = 0;
+                    int localSize = size;
+                    int logStep = (int)(localSize / 10);
 
-                /*Console.WriteLine("Starting coloring");
-                sw.Restart();
-                for (int i = 0; i < localSize; i++)
-                {
-                    for (int j = 0; j < localSize; j++)
+                    theta0list = new List<float>(localSize * localSize);
+
+                    var sw = Stopwatch.StartNew();
+                    Console.WriteLine($"Starting multythred simulation {loop}.");
+                    Parallel.For(0, localSize, options, i =>
                     {
-                        if (theta0list.Count != 0)
+                        for (int j = 0; j < localSize; j++)
                         {
-                            //calcColor(theta0list[theta0list.Count - 1], i, j);
-                            //theta0list.RemoveAt(theta0list.Count - 1);
+                            calcPen(i, j);
+                        }
+                        if (i % logStep == 0 && showInfoText) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
+                    });
+                    sw.Stop();
+                    if (sw.ElapsedMilliseconds / 1000 < 60)
+                        frameTime = $"{sw.ElapsedMilliseconds / 1000}s";
+                    else
+                    {
+                        float m = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 / 60));
+                        float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
+                        frameTime = $"{m}-{s}m";
+                    }
+                    if (showInfoText) Console.WriteLine($"Simulation ended at: T = {frameTime}");
+
+                    if (!skipRenderWait)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            Console.WriteLine($"Rendering in {i * -1 + 3}...");
+                            Thread.Sleep(1000);
                         }
                     }
-                }
-                sw.Stop();
-                if (sw.ElapsedMilliseconds / 1000 < 60)
-                    Console.WriteLine($"Coloring ended at: T = {sw.ElapsedMilliseconds / 1000}s");
-                else
-                {
-                    float m = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 / 60));
-                    float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
-                    Console.WriteLine($"Coloring ended at: T = {m}:{s}m");
-                }*/
-                if (!skipRenderWait)
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        Console.WriteLine($"Rendering in {i * -1 + 3}...");
-                        Thread.Sleep(1000);
-                    }
-                }
 
-                Console.WriteLine("Rendering canvas...");
-                this.BackColor = Color.Black;
-                render();
-                Invalidate();
-                if (saveImage) saveToDownloads("almond");
+                    Console.WriteLine("Rendering canvas...");
+                    this.BackColor = Color.Black;
+                    render();
+                    Invalidate();
+                    if (saveImage) saveToDownloads("almond");
+                }
             }
             catch (Exception ex)
             {
@@ -181,30 +165,6 @@ namespace almond
             return MathF.Abs(radians * 180f / MathF.PI) % 360 - 180;
         }
 
-        /*void vtn0(int j)
-        {
-            setPixel(j / jDevider, (int)theta0 + 600, Color.Red);
-            //setPixel(j / jDevider, (int)theta1 + 600, Color.Pink);
-            if ((int)theta0 == (int)theta1) setPixel(j / jDevider, (int)theta0, Color.White);
-        }
-
-        void vtn1()
-        {
-            setPixel(((int)theta0 / 5) + 1000, ((int)theta1 / 5) + 500, Color.Green);
-            //setPixel(1000, 500, Color.Orange);
-        }*/
-
-        /*void drawPixel(int i, int j)
-        {
-            int r = 0;
-            int b = 0;
-            if (toDegrees(theta0) >= 0)
-                r = (int)(toDegrees(theta0) / 360 * 255);
-            else
-                b = (int)(MathF.Abs(toDegrees(theta0)) / 360 * 255);
-            setPixel(i, j, Color.FromArgb(r, 0, b));
-        }*/
-
         void calcPen(int ci, int cj)
         {
             float theta0 = (ci - size / 2) * c;
@@ -225,7 +185,6 @@ namespace almond
 
             float localSubStep = subStep;
 
-            // helper: wrap angle to [-PI, PI]
             float Wrap(float a) => MathF.Atan2(MathF.Sin(a), MathF.Cos(a));
 
             float prevWrapped = Wrap(theta0);
@@ -261,13 +220,16 @@ namespace almond
                     float currWrapped = Wrap(theta0);
                     float delta = currWrapped - prevWrapped;
 
-                    if (delta > MathF.PI) flips--;     // wrapped backward
-                    if (delta < -MathF.PI) flips++;    // wrapped forward
+                    if (delta > MathF.PI) flips--;
+                    if (delta < -MathF.PI) flips++;
 
                     prevWrapped = currWrapped;
                 }
-                omega0 *= 0.999f;
-                omega1 *= 0.999f;
+                if (damping)
+                {
+                    omega0 *= 0.999f;
+                    omega1 *= 0.999f;
+                }
             }
 
             //theta0list.Add(flips);
@@ -292,12 +254,12 @@ namespace almond
             if (!reletiveC) cdata += $"_cX-{centerX}_cY-{centerY}";
             String fn = $"{fileName}_dNt-{DateTime.Now:yyyyMMdd_HHmmss}_rt-{frameTime}_size-{size}_st-{simulationTime}s_{cdata}_l0-{l0}_l1-{l1}_m0-{m0}_m1-{m1}";
             string filePath = Path.Combine(downloads, fn);
-            if (filePath.Length > 255) { filePath = filePath.Substring(0, 255); }
+            if (filePath.Length > 250) { filePath = filePath.Substring(0, 250); }
             filePath += ".png";
 
             framebuffer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
 
-            Console.WriteLine($"Image saved to: {filePath}");
+            if (showInfoText) Console.WriteLine($"Image saved to: {filePath}");
         }
     }
 }
