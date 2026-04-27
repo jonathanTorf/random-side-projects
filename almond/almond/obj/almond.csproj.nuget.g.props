@@ -13,4 +13,8 @@
     <SourceRoot Include="C:\Users\Jonatan\.nuget\packages\" />
     <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
   </ItemGroup>
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)sixlabors.imagesharp\3.1.12\build\SixLabors.ImageSharp.props" Condition="Exists('$(NuGetPackageRoot)sixlabors.imagesharp\3.1.12\build\SixLabors.ImageSharp.props')" />
+    <Import Project="$(NuGetPackageRoot)sixlabors.imagesharp.web\3.2.0\build\SixLabors.ImageSharp.Web.props" Condition="Exists('$(NuGetPackageRoot)sixlabors.imagesharp.web\3.2.0\build\SixLabors.ImageSharp.Web.props')" />
+  </ImportGroup>
 </Project>

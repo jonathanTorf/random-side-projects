@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "Fsz/PqZMMTk=",
+  "dgSpecHash": "E5XHjt4z2n8=",
   "success": true,
   "projectFilePath": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\almond.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\Jonatan\\.nuget\\packages\\microsoft.io.recyclablememorystream\\3.0.1\\microsoft.io.recyclablememorystream.3.0.1.nupkg.sha512",
+    "C:\\Users\\Jonatan\\.nuget\\packages\\sixlabors.imagesharp\\3.1.12\\sixlabors.imagesharp.3.1.12.nupkg.sha512",
+    "C:\\Users\\Jonatan\\.nuget\\packages\\sixlabors.imagesharp.web\\3.2.0\\sixlabors.imagesharp.web.3.2.0.nupkg.sha512"
+  ],
   "logs": []
 }

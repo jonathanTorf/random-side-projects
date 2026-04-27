@@ -7,6 +7,14 @@ using System.Drawing.Imaging;
 using System.Reflection.Metadata;
 using System.Windows.Forms;
 using System.IO;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Webp;
+
+using DrawingColor = System.Drawing.Color;
+using DrawingRectangle = System.Drawing.Rectangle;
+using DrawingSize = System.Drawing.Size;
 
 namespace almond
 {
@@ -19,6 +27,7 @@ namespace almond
         float c = 0.005f;
         bool reletiveC = true;
         bool saveImage = true;
+        bool saveGif = false;
         bool skipRenderWait = true;
         bool damping = true;
         bool showInfoText = false;
@@ -46,8 +55,10 @@ namespace almond
         //int printDevider = -1;
 
         List<float> theta0list;
-        Color[] pixels;
+        DrawingColor[] pixels;
         Bitmap framebuffer;
+        List<Bitmap> gifFrames = new List<Bitmap>();
+        Image<Rgba32> gif = null;
 
         public Form1()
         {
@@ -55,21 +66,22 @@ namespace almond
             {
                 InitializeComponent();
 
-                for (int loop = 0; loop < 10; loop++)
+                int loops = 50;
+                for (int loop = 0; loop < loops; loop++)
                 {
-                    l1 = loop;
+                    l1 = loop + 1;
                     width = size;
                     height = size;
 
-                    pixels = new Color[width * height];
+                    pixels = new DrawingColor[width * height];
                     framebuffer = new Bitmap(width, height);
 
-                    this.ClientSize = new Size(width, height);
+                    this.ClientSize = new DrawingSize(width, height);
 
                     if (reletiveC) c = MathF.PI * 2 / size;
                     subStep = timeStep / 10;
 
-                    //setPixel(10, 10, Color.Red);
+                    //setPixel(10, 10, DrawingColor.Red);
                     var options = new ParallelOptions
                     {
                         MaxDegreeOfParallelism = Environment.ProcessorCount / 2
@@ -81,7 +93,7 @@ namespace almond
                     theta0list = new List<float>(localSize * localSize);
 
                     var sw = Stopwatch.StartNew();
-                    Console.WriteLine($"Starting multythred simulation {loop}.");
+                    if (loop % (int)(loops / 10 + 1) == 1) Console.WriteLine($"Starting multythred simulation {loop} / {loops}.");
                     Parallel.For(0, localSize, options, i =>
                     {
                         for (int j = 0; j < localSize; j++)
@@ -110,12 +122,14 @@ namespace almond
                         }
                     }
 
-                    Console.WriteLine("Rendering canvas...");
-                    this.BackColor = Color.Black;
+                    if (showInfoText) Console.WriteLine("Rendering canvas...");
+                    this.BackColor = DrawingColor.Black;
                     render();
                     Invalidate();
                     if (saveImage) saveToDownloads("almond");
+                    if (saveGif) gifFrames.Add((Bitmap)framebuffer.Clone());
                 }
+                if (saveGif) saveAsGif();
             }
             catch (Exception ex)
             {
@@ -126,7 +140,7 @@ namespace almond
             }
         }
 
-        public void setPixel(int x, int y, Color c)
+        public void setPixel(int x, int y, DrawingColor c)
         {
             if (x < 0 || y < 0 || x >= width || y >= height) return;
             pixels[x + y * width] = c;
@@ -135,7 +149,7 @@ namespace almond
         void render()
         {
             var data = framebuffer.LockBits(
-                new Rectangle(0, 0, width, height),
+                new DrawingRectangle(0, 0, width, height),
                 ImageLockMode.WriteOnly,
                 PixelFormat.Format32bppArgb);
 
@@ -157,7 +171,7 @@ namespace almond
 
             e.Graphics.DrawImage(
                 framebuffer,
-                new Rectangle(0, 0, width, height));
+                new DrawingRectangle(0, 0, width, height));
         }
 
         float toDegrees(float radians)
@@ -243,7 +257,7 @@ namespace almond
             float cr = (MathF.Sin(ang) + 1f) * 0.5f;
             float cg = (MathF.Sin(ang + 2f * MathF.PI / 3f) + 1f) * 0.5f;
             float cb = (MathF.Sin(ang + 4f * MathF.PI / 3f) + 1f) * 0.5f;
-            setPixel(x, y, Color.FromArgb((int)(cr * 255), (int)(cg * 255), (int)(cb * 255)));
+            setPixel(x, y, DrawingColor.FromArgb((int)(cr * 255), (int)(cg * 255), (int)(cb * 255)));
         }
 
         void saveToDownloads(string fileName)
@@ -260,6 +274,29 @@ namespace almond
             framebuffer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
 
             if (showInfoText) Console.WriteLine($"Image saved to: {filePath}");
+        }
+
+        void saveAsGif()
+        {
+            var encoder = new WebpEncoder
+            {
+                FileFormat = WebpFileFormatType.Lossy, // or Lossless
+                Quality = 85,                          // 0–100
+            };
+
+            gif.Metadata.GetWebpMetadata().RepeatCount = 0; // loop forever
+
+            foreach (var frame in gif.Frames)
+            {
+                frame.Metadata.GetWebpMetadata().FrameDelay = 50; // ms
+            }
+
+            string downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            string path = Path.Combine(downloads, $"almond_{DateTime.Now:yyyyMMdd_HHmmss}.gif");
+
+            gif.Save(path);
+
+            Console.WriteLine($"GIF saved to: {path}");
         }
     }
 }
