@@ -66,10 +66,12 @@ namespace almond
             {
                 InitializeComponent();
 
-                int loops = 50;
+                var totalTime = Stopwatch.StartNew();
+                int loops = 55;
                 for (int loop = 0; loop < loops; loop++)
                 {
-                    l1 = loop + 1;
+                    //l1 = loop + 1;
+                    simulationTime = loop * 0.1f;
                     width = size;
                     height = size;
 
@@ -130,6 +132,7 @@ namespace almond
                     if (saveGif) gifFrames.Add((Bitmap)framebuffer.Clone());
                 }
                 if (saveGif) saveAsGif();
+                totalTime.Stop();
             }
             catch (Exception ex)
             {
