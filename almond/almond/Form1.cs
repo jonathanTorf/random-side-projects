@@ -21,21 +21,23 @@ namespace almond
     public partial class Form1 : Form
     {
         float c = 0.005f;
-        float flipStrangth = 0.04f;
-        float wrapedStrangth = 0.5f;
-
         bool reletiveC = true;
-        bool saveImage = false;
+        float flipStrangth = 0.02f;//0.4
+        float wrapedStrangth = 1f; //0.75
+
+        bool saveFrames = false;
         bool saveFinalImage = true;
         bool saveWebp = true;
+
         bool skipRenderWait = false;
         bool damping = true;
         bool showInfoText = false;
+
         bool doDeltaTime = true;
         int size = 500;
 
-        int loops = 100;
-        float simulationTime = .1f;
+        int loops = 250;
+        float simulationTime = 0.1f;
         float timeStep = 0.01f;
 
         float l0 = 1f;
@@ -127,7 +129,7 @@ namespace almond
                     this.BackColor = DrawingColor.Black;
                     render();
                     Invalidate();
-                    if (saveImage) saveToDownloads("almond");
+                    if (saveFrames) saveToDownloads("almond");
                     if (saveWebp) gifFrames.Add((Bitmap)framebuffer.Clone());
                 }
                 if (saveWebp) saveAsWebp();
