@@ -20,20 +20,22 @@ namespace almond
 {
     public partial class Form1 : Form
     {
-        //float theta0;
-        //float theta1;
-        //float omega0;
-        //float omega1;
         float c = 0.005f;
+        float flipStrangth = 0.04f;
+        float wrapedStrangth = 0.5f;
+
         bool reletiveC = true;
-        bool saveImage = true;
-        bool saveGif = false;
-        bool skipRenderWait = true;
+        bool saveImage = false;
+        bool saveFinalImage = true;
+        bool saveWebp = true;
+        bool skipRenderWait = false;
         bool damping = true;
         bool showInfoText = false;
-        int size = 250;
+        bool doDeltaTime = true;
+        int size = 500;
 
-        float simulationTime = 5.5f;
+        int loops = 100;
+        float simulationTime = .1f;
         float timeStep = 0.01f;
 
         float l0 = 1f;
@@ -54,24 +56,39 @@ namespace almond
         //int jDevider = 250;
         //int printDevider = -1;
 
-        List<float> theta0list;
         DrawingColor[] pixels;
         Bitmap framebuffer;
         List<Bitmap> gifFrames = new List<Bitmap>();
         Image<Rgba32> gif = null;
+        dpData[] dpDataList;
+
+        bool firstIt = true;
+
+        struct dpData
+        {
+            public float dpTheta0;
+            public float dpTheta1;
+            public float dpV0;
+            public float dpV1;
+            public float dpOmega0;
+            public float dpOmega1;
+            public float dpWrapped;
+            public int dpFlips;
+            public bool initialized;
+        }
 
         public Form1()
         {
             try
             {
                 InitializeComponent();
+                dpDataList = new dpData[size * size];
 
                 var totalTime = Stopwatch.StartNew();
-                int loops = 55;
                 for (int loop = 0; loop < loops; loop++)
                 {
                     //l1 = loop + 1;
-                    simulationTime = loop * 0.1f;
+                    //simulationTime = loop * 0.1f;
                     width = size;
                     height = size;
 
@@ -92,10 +109,8 @@ namespace almond
                     int localSize = size;
                     int logStep = (int)(localSize / 10);
 
-                    theta0list = new List<float>(localSize * localSize);
-
                     var sw = Stopwatch.StartNew();
-                    if (loop % (int)(loops / 10 + 1) == 1) Console.WriteLine($"Starting multythred simulation {loop} / {loops}.");
+                    if (loop % (int)(loops / 10 + 1) == 1) Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(totalTime.ElapsedMilliseconds)}.");
                     Parallel.For(0, localSize, options, i =>
                     {
                         for (int j = 0; j < localSize; j++)
@@ -105,34 +120,29 @@ namespace almond
                         if (i % logStep == 0 && showInfoText) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
                     });
                     sw.Stop();
-                    if (sw.ElapsedMilliseconds / 1000 < 60)
-                        frameTime = $"{sw.ElapsedMilliseconds / 1000}s";
-                    else
-                    {
-                        float m = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 / 60));
-                        float s = MathF.Floor((float)(sw.ElapsedMilliseconds / 1000 % 60));
-                        frameTime = $"{m}-{s}m";
-                    }
+                    frameTime = formatTime(sw.ElapsedMilliseconds);
                     if (showInfoText) Console.WriteLine($"Simulation ended at: T = {frameTime}");
-
-                    if (!skipRenderWait)
-                    {
-                        for (int i = 0; i < 3; i++)
-                        {
-                            Console.WriteLine($"Rendering in {i * -1 + 3}...");
-                            Thread.Sleep(1000);
-                        }
-                    }
 
                     if (showInfoText) Console.WriteLine("Rendering canvas...");
                     this.BackColor = DrawingColor.Black;
                     render();
                     Invalidate();
                     if (saveImage) saveToDownloads("almond");
-                    if (saveGif) gifFrames.Add((Bitmap)framebuffer.Clone());
+                    if (saveWebp) gifFrames.Add((Bitmap)framebuffer.Clone());
                 }
-                if (saveGif) saveAsGif();
+                if (saveWebp) saveAsWebp();
+                if (saveFinalImage) saveToDownloads("almondF");
                 totalTime.Stop();
+                Console.WriteLine($"\nTotal time: {formatTime(totalTime.ElapsedMilliseconds)}");
+                if (!skipRenderWait)
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        Console.WriteLine($"Rendering in {i * -1 + 3}...");
+                        Thread.Sleep(1000);
+                    }
+                }
+
             }
             catch (Exception ex)
             {
@@ -184,27 +194,44 @@ namespace almond
 
         void calcPen(int ci, int cj)
         {
-            float theta0 = (ci - size / 2) * c;
-            float theta1 = (cj - size / 2) * c;
-            if (!reletiveC)
-            {
-                theta0 += centerX;
-                theta1 += centerY;
-            }
-
-            float omega0 = 0;
-            float omega1 = 0;
-
-            float v0 = 0;
-            float v1 = 0;
-
-            int flips = 0;
-
-            float localSubStep = subStep;
-
+            float theta0, theta1, omega0, omega1, v0, v1, prevWrapped;
+            int flips;
+            int index = ci + cj * size;
             float Wrap(float a) => MathF.Atan2(MathF.Sin(a), MathF.Cos(a));
 
-            float prevWrapped = Wrap(theta0);
+            if (!doDeltaTime || !dpDataList[index].initialized)
+            {
+                theta0 = (ci - size / 2) * c;
+                theta1 = (cj - size / 2) * c;
+
+                if (!reletiveC)
+                {
+                    theta0 += centerX;
+                    theta1 += centerY;
+                }
+
+                omega0 = 0;
+                omega1 = 0;
+                v0 = 0;
+                v1 = 0;
+                flips = 0;
+
+                prevWrapped = Wrap(theta0);
+            }
+            else
+            {
+                var d = dpDataList[index];
+                theta0 = d.dpTheta0;
+                theta1 = d.dpTheta1;
+                omega0 = d.dpOmega0;
+                omega1 = d.dpOmega1;
+                v0 = d.dpV0;
+                v1 = d.dpV1;
+                prevWrapped = d.dpWrapped;
+                flips = d.dpFlips;
+            }
+
+            float localSubStep = subStep;
 
             for (double i = 0; i < simulationTime; i += timeStep)
             {
@@ -251,8 +278,21 @@ namespace almond
 
             //theta0list.Add(flips);
             float wrapped = MathF.Atan2(MathF.Sin(theta0), MathF.Cos(theta0));
-            float hue = flips * 0.02f + wrapped * 0.5f + MathF.PI;
+            float hue = flips * flipStrangth + wrapped * wrapedStrangth + MathF.PI;
             calcColor(hue, ci, cj);
+
+            dpDataList[index] = new dpData
+            {
+                dpTheta0 = theta0,
+                dpTheta1 = theta1,
+                dpOmega0 = omega0,
+                dpOmega1 = omega1,
+                dpV0 = v0,
+                dpV1 = v1,
+                dpWrapped = wrapped,
+                dpFlips = flips,
+                initialized = true
+            };
         }
 
         void calcColor(float ang, int x, int y)
@@ -279,27 +319,64 @@ namespace almond
             if (showInfoText) Console.WriteLine($"Image saved to: {filePath}");
         }
 
-        void saveAsGif()
+        void saveAsWebp()
         {
+            Console.WriteLine($"Compiling webp(frame count: {gifFrames.Count})");
+
+            foreach (var bmp in gifFrames)
+            {
+                using var ms = new MemoryStream();
+                bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                ms.Position = 0;
+
+                var img = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
+
+                if (gif == null)
+                    gif = img;
+                else
+                    gif.Frames.AddFrame(img.Frames.RootFrame);
+            }
+
             var encoder = new WebpEncoder
             {
-                FileFormat = WebpFileFormatType.Lossy, // or Lossless
-                Quality = 85,                          // 0–100
+                FileFormat = WebpFileFormatType.Lossy,
+                Quality = 85
             };
 
-            gif.Metadata.GetWebpMetadata().RepeatCount = 0; // loop forever
+            gif.Metadata.GetWebpMetadata().RepeatCount = 0;
 
             foreach (var frame in gif.Frames)
             {
                 frame.Metadata.GetWebpMetadata().FrameDelay = 50; // ms
             }
 
-            string downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-            string path = Path.Combine(downloads, $"almond_{DateTime.Now:yyyyMMdd_HHmmss}.gif");
+            string downloads = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads"
+            );
 
-            gif.Save(path);
+            string path = Path.Combine(
+                downloads,
+                $"almond_{DateTime.Now:yyyyMMdd_HHmmss}.webp"
+            );
 
-            Console.WriteLine($"GIF saved to: {path}");
+            gif.Save(path, encoder);
+
+            Console.WriteLine($"WebP saved to: {path}");
+        }
+
+        String formatTime(long ms)
+        {
+            String convertedTime;
+            if (ms / 1000 < 60)
+                convertedTime = $"{ms / 1000}s";
+            else
+            {
+                float m = MathF.Floor((float)(ms / 1000 / 60));
+                float s = MathF.Floor((float)(ms / 1000 % 60));
+                convertedTime = $"{m};{s}m";
+            }
+            return convertedTime;
         }
     }
 }
