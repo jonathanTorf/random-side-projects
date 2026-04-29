@@ -26,17 +26,17 @@ namespace almond
         float wrapedStrangth = 1f; //0.75
 
         bool saveFrames = false;
-        bool saveFinalImage = true;
-        bool saveWebp = true;
+        bool saveFinalImage = false;
+        bool saveWebp = false;
 
-        bool skipRenderWait = false;
+        bool skipRenderWait = true;
         bool damping = false;
         bool showInfoText = false;
 
         bool doDeltaTime = true;
-        int size = 500;
+        int size = 100;
 
-        int loops = 500;
+        int loops = 100;
         float simulationTime = 0.1f;
         float timeStep = 0.01f;
 
@@ -84,72 +84,7 @@ namespace almond
             try
             {
                 InitializeComponent();
-                dpDataList = new dpData[size * size];
-                long prevTime = 0;
-
-                var totalTime = Stopwatch.StartNew();
-                for (int loop = 0; loop < loops; loop++)
-                {
-                    //l1 = loop + 1;
-                    //simulationTime = loop * 0.1f;
-                    width = size;
-                    height = size;
-
-                    pixels = new DrawingColor[width * height];
-                    framebuffer = new Bitmap(width, height);
-
-                    this.ClientSize = new DrawingSize(width, height);
-
-                    if (reletiveC) c = MathF.PI * 2 / size;
-                    subStep = timeStep / 10;
-
-                    //setPixel(10, 10, DrawingColor.Red);
-                    var options = new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = Environment.ProcessorCount / 2
-                    };
-                    //int k = 0;
-                    int localSize = size;
-                    int logStep = (int)(localSize / 10);
-
-                    var sw = Stopwatch.StartNew();
-                    if (loop % (int)(loops / 10 + 1) == 0)
-                    {
-                        long time = totalTime.ElapsedMilliseconds;
-                        Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
-                        prevTime = totalTime.ElapsedMilliseconds;
-                    }
-                    Parallel.For(0, localSize, options, i =>
-                    {
-                        for (int j = 0; j < localSize; j++)
-                        {
-                            calcPen(i, j);
-                        }
-                        if (i % logStep == 0 && showInfoText) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
-                    });
-                    sw.Stop();
-                    frameTime = formatTime(sw.ElapsedMilliseconds);
-                    if (showInfoText) Console.WriteLine($"Simulation ended at: T = {frameTime}");
-
-                    if (showInfoText) Console.WriteLine("Rendering canvas...");
-                    this.BackColor = DrawingColor.Black;
-                    render();
-                    Invalidate();
-                    if (saveFrames) saveToDownloads("almond");
-                    if (saveWebp) gifFrames.Add((Bitmap)framebuffer.Clone());
-                }
-                if (saveWebp) saveAsWebp();
-                if (saveFinalImage) saveToDownloads("almondF");
-                totalTime.Stop();
-                Console.WriteLine($"\nTotal time: {formatTime(totalTime.ElapsedMilliseconds)}");
-                if (!skipRenderWait)
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        Console.WriteLine($"Rendering in {i * -1 + 3}...");
-                        Thread.Sleep(1000);
-                    }
-                }
+                this.Load += Form1_Load;
 
             }
             catch (Exception ex)
@@ -159,6 +94,13 @@ namespace almond
                 Console.WriteLine("\nPress any key to exit...");
                 Console.ReadKey();
             }
+        }
+
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            await Task.Run(() => runSimulation());
+
+            Console.WriteLine("Simulation done");
         }
 
         public void setPixel(int x, int y, DrawingColor c)
@@ -385,6 +327,76 @@ namespace almond
                 convertedTime = $"{m};{s}m";
             }
             return convertedTime;
+        }
+
+        void runSimulation()
+        {
+            dpDataList = new dpData[size * size];
+            long prevTime = 0;
+
+            var totalTime = Stopwatch.StartNew();
+            for (int loop = 0; loop < loops; loop++)
+            {
+                //l1 = loop + 1;
+                //simulationTime = loop * 0.1f;
+                width = size;
+                height = size;
+
+                pixels = new DrawingColor[width * height];
+                framebuffer = new Bitmap(width, height);
+
+                this.ClientSize = new DrawingSize(width, height);
+
+                if (reletiveC) c = MathF.PI * 2 / size;
+                subStep = timeStep / 10;
+
+                //setPixel(10, 10, DrawingColor.Red);
+                var options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Environment.ProcessorCount / 2
+                };
+                //int k = 0;
+                int localSize = size;
+                int logStep = (int)(localSize / 10);
+
+                var sw = Stopwatch.StartNew();
+                if (loop % (int)(loops / 10 + 1) == 0)
+                {
+                    long time = totalTime.ElapsedMilliseconds;
+                    Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
+                    prevTime = totalTime.ElapsedMilliseconds;
+                }
+                Parallel.For(0, localSize, options, i =>
+                {
+                    for (int j = 0; j < localSize; j++)
+                    {
+                        calcPen(i, j);
+                    }
+                    if (i % logStep == 0 && showInfoText) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
+                });
+                sw.Stop();
+                frameTime = formatTime(sw.ElapsedMilliseconds);
+                if (showInfoText) Console.WriteLine($"Simulation ended at: T = {frameTime}");
+
+                if (showInfoText) Console.WriteLine("Rendering canvas...");
+                this.BackColor = DrawingColor.Black;
+                render();
+                Invalidate();
+                if (saveFrames) saveToDownloads("almond");
+                if (saveWebp) gifFrames.Add((Bitmap)framebuffer.Clone());
+            }
+            if (saveWebp) saveAsWebp();
+            if (saveFinalImage) saveToDownloads("almondF");
+            totalTime.Stop();
+            Console.WriteLine($"\nTotal time: {formatTime(totalTime.ElapsedMilliseconds)}");
+            if (!skipRenderWait)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    Console.WriteLine($"Rendering in {i * -1 + 3}...");
+                    Thread.Sleep(1000);
+                }
+            }
         }
     }
 }
