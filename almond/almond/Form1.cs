@@ -30,13 +30,13 @@ namespace almond
         bool saveWebp = true;
 
         bool skipRenderWait = false;
-        bool damping = true;
+        bool damping = false;
         bool showInfoText = false;
 
         bool doDeltaTime = true;
         int size = 500;
 
-        int loops = 250;
+        int loops = 500;
         float simulationTime = 0.1f;
         float timeStep = 0.01f;
 
@@ -46,8 +46,8 @@ namespace almond
         float m1 = 1f;
         float g = 9.81f;
 
-        float centerX = 0f;
-        float centerY = 0f;
+        float centerX = 1.2f;
+        float centerY = 0.5f;
 
         int width = 1;
         int height = 1;
@@ -85,6 +85,7 @@ namespace almond
             {
                 InitializeComponent();
                 dpDataList = new dpData[size * size];
+                long prevTime = 0;
 
                 var totalTime = Stopwatch.StartNew();
                 for (int loop = 0; loop < loops; loop++)
@@ -112,7 +113,12 @@ namespace almond
                     int logStep = (int)(localSize / 10);
 
                     var sw = Stopwatch.StartNew();
-                    if (loop % (int)(loops / 10 + 1) == 1) Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(totalTime.ElapsedMilliseconds)}.");
+                    if (loop % (int)(loops / 10 + 1) == 0)
+                    {
+                        long time = totalTime.ElapsedMilliseconds;
+                        Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
+                        prevTime = totalTime.ElapsedMilliseconds;
+                    }
                     Parallel.For(0, localSize, options, i =>
                     {
                         for (int j = 0; j < localSize; j++)
