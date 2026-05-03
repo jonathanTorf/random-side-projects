@@ -20,24 +20,25 @@ namespace almond
 {
     public partial class Form1 : Form
     {
-        float c = 0.005f;
-        bool reletiveC = true;
-        float flipStrangth = 0.02f;//0.4
-        float wrapedStrangth = 1f; //0.75
+        float c = 0.01f;
+        float originalC;
+        bool reletiveC = false;
+        float flipStrangth = 0.1f;//0.4
+        float wrapedStrangth = 1.5f; //0.75
 
         bool saveFrames = false;
-        bool saveFinalImage = false;
-        bool saveWebp = false;
+        bool saveFinalImage = true;
+        bool saveWebp = true;
 
         bool skipRenderWait = true;
         bool damping = false;
         bool showInfoText = false;
 
-        bool doDeltaTime = true;
-        int size = 100;
+        bool doDeltaTime = false;
+        int size = 150;
 
-        int loops = 100;
-        float simulationTime = 0.1f;
+        int loops = 99;
+        float simulationTime = 8f;
         float timeStep = 0.01f;
 
         float l0 = 1f;
@@ -46,8 +47,8 @@ namespace almond
         float m1 = 1f;
         float g = 9.81f;
 
-        float centerX = 1.2f;
-        float centerY = 0.5f;
+        int centerX = 335;
+        int centerY = -120;
 
         int width = 1;
         int height = 1;
@@ -81,9 +82,20 @@ namespace almond
 
         public Form1()
         {
+            width = size;
+            height = size;
+
+            originalC = c;
+
+            pixels = new DrawingColor[width * height];
+            framebuffer = new Bitmap(width, height);
+            this.ClientSize = new DrawingSize(width, height);
+            this.DoubleBuffered = true;
+
             try
             {
                 InitializeComponent();
+                this.MouseClick += Form1_MouseClick;
                 this.Load += Form1_Load;
 
             }
@@ -94,6 +106,14 @@ namespace almond
                 Console.WriteLine("\nPress any key to exit...");
                 Console.ReadKey();
             }
+        }
+
+        private void Form1_MouseClick(object sender, MouseEventArgs e)
+        {
+            int px = e.X - size / 2 + centerX;
+            int py = e.Y - size / 2 + centerY;
+
+            Console.WriteLine($"Clicked at: {px}, {py}");
         }
 
         private async void Form1_Load(object sender, EventArgs e)
@@ -156,8 +176,8 @@ namespace almond
 
                 if (!reletiveC)
                 {
-                    theta0 += centerX;
-                    theta1 += centerY;
+                    theta0 += centerX / originalC;
+                    theta1 += centerY / originalC;
                 }
 
                 omega0 = 0;
@@ -331,19 +351,14 @@ namespace almond
 
         void runSimulation()
         {
+            Array.Clear(pixels, 0, pixels.Length);
             dpDataList = new dpData[size * size];
             long prevTime = 0;
 
             var totalTime = Stopwatch.StartNew();
             for (int loop = 0; loop < loops; loop++)
             {
-                //l1 = loop + 1;
-                //simulationTime = loop * 0.1f;
-                width = size;
-                height = size;
-
-                pixels = new DrawingColor[width * height];
-                framebuffer = new Bitmap(width, height);
+                c -= 0.0001f;
 
                 this.ClientSize = new DrawingSize(width, height);
 
@@ -380,8 +395,11 @@ namespace almond
 
                 if (showInfoText) Console.WriteLine("Rendering canvas...");
                 this.BackColor = DrawingColor.Black;
-                render();
-                Invalidate();
+                BeginInvoke(() =>
+                {
+                    render();
+                    Invalidate();
+                });
                 if (saveFrames) saveToDownloads("almond");
                 if (saveWebp) gifFrames.Add((Bitmap)framebuffer.Clone());
             }
