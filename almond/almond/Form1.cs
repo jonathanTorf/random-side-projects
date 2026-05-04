@@ -15,20 +15,23 @@ using SixLabors.ImageSharp.Formats.Webp;
 using DrawingColor = System.Drawing.Color;
 using DrawingRectangle = System.Drawing.Rectangle;
 using DrawingSize = System.Drawing.Size;
+using System.Runtime.CompilerServices;
+using System.Windows.Forms.VisualStyles;
 
 namespace almond
 {
     public partial class Form1 : Form
     {
-        float c = 0.01f;
+        float c = 0.025f;
         float originalC;
         bool reletiveC = false;
+        bool repeating = false;
         float flipStrangth = 0.1f;//0.4
         float wrapedStrangth = 1.5f; //0.75
 
         bool saveFrames = false;
         bool saveFinalImage = true;
-        bool saveWebp = true;
+        bool saveWebp = false;
 
         bool skipRenderWait = true;
         bool damping = false;
@@ -37,9 +40,9 @@ namespace almond
         bool doDeltaTime = false;
         int size = 150;
 
-        int loops = 99;
-        float simulationTime = 8f;
-        float timeStep = 0.01f;
+        int loops = 1;
+        float simulationTime = 5.5f;
+        float timeStep = 0.005f;
 
         float l0 = 1f;
         float l1 = 1f;
@@ -47,8 +50,8 @@ namespace almond
         float m1 = 1f;
         float g = 9.81f;
 
-        int centerX = 335;
-        int centerY = -120;
+        int centerX = 0;
+        int centerY = 0;
 
         int width = 1;
         int height = 1;
@@ -61,11 +64,16 @@ namespace almond
 
         DrawingColor[] pixels;
         Bitmap framebuffer;
+        Bitmap renderBuffer;
         List<Bitmap> gifFrames = new List<Bitmap>();
         Image<Rgba32> gif = null;
         dpData[] dpDataList;
+        CancellationTokenSource simCancel;
+        Task simTask;
 
         bool firstIt = true;
+
+        float valMult = 1;
 
         struct dpData
         {
@@ -89,13 +97,16 @@ namespace almond
 
             pixels = new DrawingColor[width * height];
             framebuffer = new Bitmap(width, height);
+            renderBuffer = new Bitmap(width, height);
             this.ClientSize = new DrawingSize(width, height);
             this.DoubleBuffered = true;
+            this.KeyPreview = true;
 
             try
             {
                 InitializeComponent();
                 this.MouseClick += Form1_MouseClick;
+                this.KeyDown += Form1_KeyDown;
                 this.Load += Form1_Load;
 
             }
@@ -108,19 +119,167 @@ namespace almond
             }
         }
 
+        async void cs()
+        {
+            simCancel?.Cancel();
+
+            if (simTask != null)
+                await simTask;
+
+            StartSimulation();
+        }
+
         private void Form1_MouseClick(object sender, MouseEventArgs e)
         {
             int px = e.X - size / 2 + centerX;
             int py = e.Y - size / 2 + centerY;
+            centerX = px; centerY = py;
+            cs();
 
-            Console.WriteLine($"Clicked at: {px}, {py}");
+            Console.WriteLine($"Moving center to: {px}, {py}");
         }
 
-        private async void Form1_Load(object sender, EventArgs e)
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            await Task.Run(() => runSimulation());
+            if (e.KeyCode == Keys.W)
+            {
+                centerY += 1 * (int)valMult;
+                Console.WriteLine($"CenterY increased to {centerY}");
+                if (!reletiveC) cs();
+                
+            }
+            else if (e.KeyCode == Keys.A)
+            {
+                centerX += 1 * (int)valMult;
+                Console.WriteLine($"CenterX increased to {centerX}");
+                if (!reletiveC) cs();
 
-            Console.WriteLine("Simulation done");
+            }
+            else if (e.KeyCode == Keys.S)
+            {
+                centerY -= 1 * (int)valMult;
+                Console.WriteLine($"CenterY decreased to {centerY}");
+                if (!reletiveC) cs();
+
+            }
+            else if (e.KeyCode == Keys.D)
+            {
+                centerX -= 1 * (int)valMult;
+                Console.WriteLine($"CenterX decreased to {centerX}");
+                if (!reletiveC) cs();
+
+            }
+
+            else if (e.KeyCode == Keys.Oemplus)
+            {
+                c -= 0.0001f * valMult;
+                if (c <= 0) c = 0.0001f;
+                Console.WriteLine($"C decreased to {c}");
+                if (!reletiveC) cs();
+
+            }
+            else if (e.KeyCode == Keys.OemMinus)
+            {
+                c += 0.0001f * valMult;
+                Console.WriteLine($"C increased to {c}");
+                if (!reletiveC) cs();
+
+            }
+
+            else if (e.KeyCode == Keys.O)
+            {
+                l0 -= 0.1f * valMult;
+                if (l0 < 0.1f) l0 = 0.1f;
+                Console.WriteLine($"L0 decreased to {l0}");
+                cs();
+
+            }
+            else if (e.KeyCode == Keys.P)
+            {
+                l0 += 0.1f * valMult;
+                Console.WriteLine($"L0 increased to {l0}");
+                cs();
+
+            }
+
+            else if (e.KeyCode == Keys.L)
+            {
+                l1 -= 0.1f * valMult;
+                if (l1 < 0.1) l1 = 0.1f;
+                Console.WriteLine($"L1 decreased to {l1}");
+                cs();
+
+            }
+            else if (e.KeyCode == Keys.OemSemicolon)
+            {
+                l1 += 0.1f * valMult;
+                Console.WriteLine($"L1 increased to {l1}");
+                cs();
+
+            }
+
+            else if (e.KeyCode == Keys.C)
+            {
+                Console.Clear();
+                Console.WriteLine("Console cleared");
+            }
+
+            else if (e.KeyCode == Keys.F1)
+            {
+                saveToDownloads("almond");
+                Console.WriteLine("Saved as .png");
+            }
+
+            else if (e.KeyCode == Keys.ControlKey)
+            {
+                valMult = 1;
+                Console.WriteLine($"valMult changed to {valMult}");
+            }
+            else if (e.KeyCode == Keys.ShiftKey)
+            {
+                valMult = 10;
+                Console.WriteLine($"valMult changed to {valMult}");
+            }
+            else if (e.KeyCode == Keys.Z)
+            {
+                valMult = 100;
+                Console.WriteLine($"valMult changed to {valMult}");
+            }
+
+            else if (e.KeyCode == Keys.R)
+            {
+                reletiveC = !reletiveC;
+                Console.WriteLine($"reletiveC changed to {reletiveC}");
+                cs();
+            }
+
+            else if (e.KeyCode == Keys.Down)
+            {
+                size -= 1 * (int)valMult;
+                if (size < 1) size = 1;
+                Console.WriteLine($"Size decreased to {size}");
+                cs();
+
+            }
+            else if (e.KeyCode == Keys.Up)
+            {
+                size += 1 * (int)valMult;
+                Console.WriteLine($"Size increased to {size}");
+                cs();
+
+            }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            StartSimulation();
+        }
+
+        void StartSimulation()
+        {
+            simCancel = new CancellationTokenSource();
+
+            simTask = Task.Run(() => runSimulation(simCancel.Token));
         }
 
         public void setPixel(int x, int y, DrawingColor c)
@@ -152,9 +311,11 @@ namespace almond
             e.Graphics.InterpolationMode =
                 System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
 
-            e.Graphics.DrawImage(
-                framebuffer,
-                new DrawingRectangle(0, 0, width, height));
+            lock (renderBuffer)
+            {
+                e.Graphics.DrawImage(renderBuffer,
+                    new DrawingRectangle(0, 0, width, height));
+            }
         }
 
         float toDegrees(float radians)
@@ -176,8 +337,14 @@ namespace almond
 
                 if (!reletiveC)
                 {
-                    theta0 += centerX / originalC;
-                    theta1 += centerY / originalC;
+                    theta0 += centerX * c;
+                    theta1 += centerY * c;
+                }
+
+                if (MathF.Abs(theta0) > MathF.PI || MathF.Abs(theta1) > MathF.PI)
+                {
+                    setPixel(ci, cj, DrawingColor.Black);
+                    return;
                 }
 
                 omega0 = 0;
@@ -338,7 +505,11 @@ namespace almond
         String formatTime(long ms)
         {
             String convertedTime;
-            if (ms / 1000 < 60)
+            if (ms < 1000)
+            {
+                convertedTime = $"{ms}ms";
+            }
+            else if (ms / 1000 < 60)
                 convertedTime = $"{ms / 1000}s";
             else
             {
@@ -349,7 +520,7 @@ namespace almond
             return convertedTime;
         }
 
-        void runSimulation()
+        void runSimulation(CancellationToken token)
         {
             Array.Clear(pixels, 0, pixels.Length);
             dpDataList = new dpData[size * size];
@@ -358,9 +529,10 @@ namespace almond
             var totalTime = Stopwatch.StartNew();
             for (int loop = 0; loop < loops; loop++)
             {
-                c -= 0.0001f;
+                //c -= 0.0001f;
 
-                this.ClientSize = new DrawingSize(width, height);
+                if (token.IsCancellationRequested) return;
+                this.Invoke(() => { this.ClientSize = new DrawingSize(width, height); });
 
                 if (reletiveC) c = MathF.PI * 2 / size;
                 subStep = timeStep / 10;
@@ -378,7 +550,7 @@ namespace almond
                 if (loop % (int)(loops / 10 + 1) == 0)
                 {
                     long time = totalTime.ElapsedMilliseconds;
-                    Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
+                    //Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
                     prevTime = totalTime.ElapsedMilliseconds;
                 }
                 Parallel.For(0, localSize, options, i =>
@@ -395,14 +567,25 @@ namespace almond
 
                 if (showInfoText) Console.WriteLine("Rendering canvas...");
                 this.BackColor = DrawingColor.Black;
-                BeginInvoke(() =>
+                this.Invoke(() =>
                 {
                     render();
+
+                    lock (renderBuffer)
+                    {
+                        using (Graphics g = Graphics.FromImage(renderBuffer))
+                        {
+                            g.DrawImageUnscaled(framebuffer, 0, 0);
+                        }
+                    }
+
                     Invalidate();
+
+                    if (saveWebp) gifFrames.Add((Bitmap)renderBuffer.Clone());
                 });
                 if (saveFrames) saveToDownloads("almond");
-                if (saveWebp) gifFrames.Add((Bitmap)framebuffer.Clone());
             }
+            if (token.IsCancellationRequested) return;
             if (saveWebp) saveAsWebp();
             if (saveFinalImage) saveToDownloads("almondF");
             totalTime.Stop();
