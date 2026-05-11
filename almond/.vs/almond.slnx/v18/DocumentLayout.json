@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|solutionrelative:almond\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|c:\\users\\jonatan\\documents\\github\\random-side-projects\\almond\\almond\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|solutionrelative:almond\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|solutionrelative:almond\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
       "AbsoluteMoniker": "D:0:0:{BB031362-0598-E025-C1B4-E5D3E2DC33B9}|almond\\almond.csproj|c:\\users\\jonatan\\documents\\github\\random-side-projects\\almond\\almond\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -30,7 +30,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 1476,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -49,8 +49,7 @@
               "ToolTip": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\Form1.resx",
               "RelativeToolTip": "almond\\Form1.resx",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
-              "WhenOpened": "2026-04-29T10:32:27.321Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-29T10:32:27.321Z"
             },
             {
               "$type": "Document",
@@ -62,33 +61,31 @@
               "RelativeToolTip": "almond\\Form1.Designer.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-29T10:32:24.531Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-29T10:32:24.531Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "Form1.cs",
               "DocumentMoniker": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\Form1.cs",
               "RelativeDocumentMoniker": "almond\\Form1.cs",
               "ToolTip": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\Form1.cs",
               "RelativeToolTip": "almond\\Form1.cs",
-              "ViewState": "AgIAAEcBAAAAAAAAAAD4v1QBAAApAAAAAAAAAA==",
+              "ViewState": "AgIAACsAAAAAAAAAAAApwMACAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-29T09:33:36.844Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Form1.cs [Design]",
               "DocumentMoniker": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\Form1.cs",
               "RelativeDocumentMoniker": "almond\\Form1.cs",
               "ToolTip": "C:\\Users\\Jonatan\\Documents\\GitHub\\random-side-projects\\almond\\almond\\Form1.cs [Design]",
               "RelativeToolTip": "almond\\Form1.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-29T09:33:34.031Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2026-04-29T09:33:34.031Z"
             },
             {
               "$type": "Document",
@@ -100,8 +97,7 @@
               "RelativeToolTip": "almond\\Program.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-29T09:33:30.967Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-29T09:33:30.967Z"
             }
           ]
         }

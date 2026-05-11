@@ -23,6 +23,7 @@ namespace almond
     public partial class Form1 : Form
     {
         float c = 0.025f;
+        int renderMode = 0;
         float originalC;
         bool reletiveC = false;
         bool repeating = false;
@@ -37,24 +38,30 @@ namespace almond
         bool damping = false;
         bool showInfoText = false;
 
+        bool explorer = true;
         bool doDeltaTime = false;
-        int size = 150;
+        int size;
+        int maxSize;
 
         int loops = 1;
         float simulationTime = 5.5f;
         float timeStep = 0.005f;
 
         float l0 = 1f;
+        float l0step = 0;
         float l1 = 1f;
+        float l1step = 0;
         float m0 = 1f;
+        float m0step = 0;
         float m1 = 1f;
+        float m1step = 1;
         float g = 9.81f;
 
         int centerX = 0;
         int centerY = 0;
 
-        int width = 1;
-        int height = 1;
+        int width;
+        int height;
 
         String frameTime;
         float subStep;
@@ -90,9 +97,64 @@ namespace almond
 
         public Form1()
         {
+            Console.Write("Enter mode('t' for timelaps, 'e' for explorer): ");
+            explorer = getConsoleChar('t', 'e', "Mode") == 'e';
+            reletiveC = !explorer;
+            saveWebp = !explorer;
+            
+            if (explorer) Console.Write("Enter max size(to change this value you will have to restart the program): ");
+            else Console.Write("Enter size: ");
+            maxSize = getConsoleInt(50, 2500, "Size");
+
+            if (!explorer)
+            {
+                Console.Write("Do telta time(each frame will continue from the previos instad of from 0) [y/n]: ");
+                doDeltaTime = getConsoleChar('y', 'n', "Do delta time") == 'y';
+                Console.Write("Enter time tick(how long each frame is simulated for): ");
+                simulationTime = getConsoleFloat(0, 10, "Time tick");
+                Console.Write("Enter total ticks(how many frames the program will simulate): ");
+                loops = getConsoleInt(1, 1000000000, "Total ticks");
+
+                Console.Write("Enter l0min(starting length of the first penduloms stick): ");
+                l0 = getConsoleFloat(0, 1000, "l0min");
+                if (l0 == 0) l0 = 1;
+                else
+                {
+                    Console.Write("Enter l0step(how much length of the first penduloms stick increases by each frame): ");
+                    l0step = getConsoleFloat(0, 1000, "l0step");
+                }
+
+                Console.Write("Enter l1min(starting length of the second penduloms stick): ");
+                l1 = getConsoleFloat(0, 1000, "l1min");
+                if (l1 == 0) l1 = 1;
+                else
+                {
+                    Console.Write("Enter l1step(how much length of the second penduloms stick increases by each frame): ");
+                    l1step = getConsoleFloat(0, 1000, "l1step");
+                }
+
+                Console.Write("Enter m0min(starting weight of the first penduloms ball): ");
+                m0 = getConsoleFloat(0, 1000, "l0min");
+                if (m0 == 0) m0 = 1;
+                else
+                {
+                    Console.Write("Enter m0step(how much the weight of the first ball increases by each frame): ");
+                    m0step = getConsoleFloat(0, 1000, "l0step");
+                }
+
+                Console.Write("Enter m1min(starting weight of the first penduloms ball): ");
+                m1 = getConsoleFloat(0, 1000, "l0min");
+                if (m1 == 0) m1 = 1;
+                else
+                {
+                    Console.Write("Enter m1step(how much the weight of the first ball increases by each frame): ");
+                    m1step = getConsoleFloat(0, 1000, "l0step");
+                }
+            }
+
+            size = maxSize;
             width = size;
             height = size;
-
             originalC = c;
 
             pixels = new DrawingColor[width * height];
@@ -129,144 +191,211 @@ namespace almond
             StartSimulation();
         }
 
+        int getConsoleInt(int min, int max, String name)
+        {
+            while (true)
+            {
+                string val = Console.ReadLine();
+                if (int.TryParse(val, out var valI))
+                {
+                    valI = int.Parse(val);
+                    if (valI < min || valI > max) Console.Write($"Invalid input entered, input must be between {min} and {max}: ");
+                    else
+                    {
+                        Console.WriteLine($"{name} set to: {val}");
+                        return valI;
+                    }
+                }
+                else { Console.Write($"Invalid input entered, input must be an int: "); }
+            }
+        }
+
+        float getConsoleFloat(float min, float max, String name)
+        {
+            while (true)
+            {
+                string val = Console.ReadLine();
+                if (float.TryParse(val, out var valI))
+                {
+                    valI = float.Parse(val);
+                    if (valI < min || valI > max) Console.Write($"Invalid input entered, input must be between {min} and {max}: ");
+                    else
+                    {
+                        Console.WriteLine($"{name} set to: {val}");
+                        return valI;
+                    }
+                }
+                else { Console.Write($"Invalid input entered, input must be a float: "); }
+            }
+        }
+
+        char getConsoleChar(char option0, char option1, String name)
+        {
+            while (true)
+            {
+                string val = Console.ReadLine();
+                if (char.TryParse(val, out var valC))
+                {
+                    valC = char.Parse(val);
+                    if (valC != option0 && valC != option1) Console.Write($"Invalid input entered, input must be ether '{option0}' or '{option1}': ");
+                    else
+                    {
+                        Console.WriteLine($"{name} set to: {val}");
+                        return valC;
+                    }
+                }
+                else { Console.Write($"Invalid input entered, input must be a char: "); }
+            }
+        }
+
         private void Form1_MouseClick(object sender, MouseEventArgs e)
         {
             int px = e.X - size / 2 + centerX;
             int py = e.Y - size / 2 + centerY;
-            centerX = px; centerY = py;
-            cs();
 
-            Console.WriteLine($"Moving center to: {px}, {py}");
+            if (e.Button == MouseButtons.Right && explorer)
+            {
+                centerX = px; centerY = py;
+                if (!reletiveC) cs();
+
+                Console.WriteLine($"Moving center to: {px}, {py}");
+            }
+            else { Console.WriteLine($"Clicked at: {px}, {py}"); }
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.W)
-            {
-                centerY += 1 * (int)valMult;
-                Console.WriteLine($"CenterY increased to {centerY}");
-                if (!reletiveC) cs();
-                
-            }
-            else if (e.KeyCode == Keys.A)
-            {
-                centerX += 1 * (int)valMult;
-                Console.WriteLine($"CenterX increased to {centerX}");
-                if (!reletiveC) cs();
-
-            }
-            else if (e.KeyCode == Keys.S)
-            {
-                centerY -= 1 * (int)valMult;
-                Console.WriteLine($"CenterY decreased to {centerY}");
-                if (!reletiveC) cs();
-
-            }
-            else if (e.KeyCode == Keys.D)
-            {
-                centerX -= 1 * (int)valMult;
-                Console.WriteLine($"CenterX decreased to {centerX}");
-                if (!reletiveC) cs();
-
-            }
-
-            else if (e.KeyCode == Keys.Oemplus)
-            {
-                c -= 0.0001f * valMult;
-                if (c <= 0) c = 0.0001f;
-                Console.WriteLine($"C decreased to {c}");
-                if (!reletiveC) cs();
-
-            }
-            else if (e.KeyCode == Keys.OemMinus)
-            {
-                c += 0.0001f * valMult;
-                Console.WriteLine($"C increased to {c}");
-                if (!reletiveC) cs();
-
-            }
-
-            else if (e.KeyCode == Keys.O)
-            {
-                l0 -= 0.1f * valMult;
-                if (l0 < 0.1f) l0 = 0.1f;
-                Console.WriteLine($"L0 decreased to {l0}");
-                cs();
-
-            }
-            else if (e.KeyCode == Keys.P)
-            {
-                l0 += 0.1f * valMult;
-                Console.WriteLine($"L0 increased to {l0}");
-                cs();
-
-            }
-
-            else if (e.KeyCode == Keys.L)
-            {
-                l1 -= 0.1f * valMult;
-                if (l1 < 0.1) l1 = 0.1f;
-                Console.WriteLine($"L1 decreased to {l1}");
-                cs();
-
-            }
-            else if (e.KeyCode == Keys.OemSemicolon)
-            {
-                l1 += 0.1f * valMult;
-                Console.WriteLine($"L1 increased to {l1}");
-                cs();
-
-            }
-
-            else if (e.KeyCode == Keys.C)
+            if (e.KeyCode == Keys.C)
             {
                 Console.Clear();
                 Console.WriteLine("Console cleared");
             }
 
-            else if (e.KeyCode == Keys.F1)
+            if (explorer)
             {
-                saveToDownloads("almond");
-                Console.WriteLine("Saved as .png");
-            }
+                if (e.KeyCode == Keys.W)
+                {
+                    centerY += 1 * (int)valMult;
+                    Console.WriteLine($"CenterY increased to {centerY}");
+                    if (!reletiveC) cs();
 
-            else if (e.KeyCode == Keys.ControlKey)
-            {
-                valMult = 1;
-                Console.WriteLine($"valMult changed to {valMult}");
-            }
-            else if (e.KeyCode == Keys.ShiftKey)
-            {
-                valMult = 10;
-                Console.WriteLine($"valMult changed to {valMult}");
-            }
-            else if (e.KeyCode == Keys.Z)
-            {
-                valMult = 100;
-                Console.WriteLine($"valMult changed to {valMult}");
-            }
+                }
+                else if (e.KeyCode == Keys.A)
+                {
+                    centerX += 1 * (int)valMult;
+                    Console.WriteLine($"CenterX increased to {centerX}");
+                    if (!reletiveC) cs();
 
-            else if (e.KeyCode == Keys.R)
-            {
-                reletiveC = !reletiveC;
-                Console.WriteLine($"reletiveC changed to {reletiveC}");
-                cs();
-            }
+                }
+                else if (e.KeyCode == Keys.S)
+                {
+                    centerY -= 1 * (int)valMult;
+                    Console.WriteLine($"CenterY decreased to {centerY}");
+                    if (!reletiveC) cs();
 
-            else if (e.KeyCode == Keys.Down)
-            {
-                size -= 1 * (int)valMult;
-                if (size < 1) size = 1;
-                Console.WriteLine($"Size decreased to {size}");
-                cs();
+                }
+                else if (e.KeyCode == Keys.D)
+                {
+                    centerX -= 1 * (int)valMult;
+                    Console.WriteLine($"CenterX decreased to {centerX}");
+                    if (!reletiveC) cs();
 
-            }
-            else if (e.KeyCode == Keys.Up)
-            {
-                size += 1 * (int)valMult;
-                Console.WriteLine($"Size increased to {size}");
-                cs();
+                }
 
+                else if (e.KeyCode == Keys.Oemplus)
+                {
+                    c -= 0.0001f * valMult;
+                    if (c <= 0) c = 0.0001f;
+                    Console.WriteLine($"C decreased to {c}");
+                    if (!reletiveC) cs();
+
+                }
+                else if (e.KeyCode == Keys.OemMinus)
+                {
+                    c += 0.0001f * valMult;
+                    Console.WriteLine($"C increased to {c}");
+                    if (!reletiveC) cs();
+
+                }
+
+                else if (e.KeyCode == Keys.O)
+                {
+                    l0 -= 0.1f * valMult;
+                    if (l0 < 0.1f) l0 = 0.1f;
+                    Console.WriteLine($"L0 decreased to {l0}");
+                    cs();
+
+                }
+                else if (e.KeyCode == Keys.P)
+                {
+                    l0 += 0.1f * valMult;
+                    Console.WriteLine($"L0 increased to {l0}");
+                    cs();
+
+                }
+
+                else if (e.KeyCode == Keys.L)
+                {
+                    l1 -= 0.1f * valMult;
+                    if (l1 < 0.1) l1 = 0.1f;
+                    Console.WriteLine($"L1 decreased to {l1}");
+                    cs();
+
+                }
+                else if (e.KeyCode == Keys.OemSemicolon)
+                {
+                    l1 += 0.1f * valMult;
+                    Console.WriteLine($"L1 increased to {l1}");
+                    cs();
+
+                }
+
+                else if (e.KeyCode == Keys.F1)
+                {
+                    saveToDownloads("almond");
+                    Console.WriteLine("Saved as .png");
+                }
+
+                else if (e.KeyCode == Keys.ControlKey)
+                {
+                    valMult = 1;
+                    Console.WriteLine($"valMult changed to {valMult}");
+                }
+                else if (e.KeyCode == Keys.ShiftKey)
+                {
+                    valMult = 10;
+                    Console.WriteLine($"valMult changed to {valMult}");
+                }
+                else if (e.KeyCode == Keys.Z)
+                {
+                    valMult = 100;
+                    Console.WriteLine($"valMult changed to {valMult}");
+                }
+
+                else if (e.KeyCode == Keys.R)
+                {
+                    reletiveC = !reletiveC;
+                    Console.WriteLine($"reletiveC changed to {reletiveC}");
+                    cs();
+                }
+
+                else if (e.KeyCode == Keys.Down)
+                {
+                    size -= 1 * (int)valMult;
+                    if (size < 1) size = 1;
+                    this.ClientSize = new DrawingSize(size, size);
+                    Console.WriteLine($"Size decreased to {size}");
+                    cs();
+
+                }
+                else if (e.KeyCode == Keys.Up)
+                {
+                    size += 1 * (int)valMult;
+                    if (size > maxSize) size = maxSize;
+                    this.ClientSize = new DrawingSize(size, size);
+                    Console.WriteLine($"Size increased to {size}");
+                    cs();
+                }
             }
         }
 
@@ -415,8 +544,18 @@ namespace almond
 
             //theta0list.Add(flips);
             float wrapped = MathF.Atan2(MathF.Sin(theta0), MathF.Cos(theta0));
-            float hue = flips * flipStrangth + wrapped * wrapedStrangth + MathF.PI;
-            calcColor(hue, ci, cj);
+            switch (renderMode)
+            {
+                case 0:
+                    float hue = flips * flipStrangth + wrapped * wrapedStrangth + MathF.PI;
+                    calcColor(hue, ci, cj);
+                    break;
+                case 1:
+                    if (flips != 0) setPixel(ci, cj, DrawingColor.Red);
+                    else setPixel(ci, cj, DrawingColor.White);
+                    break;
+            }
+            
 
             dpDataList[index] = new dpData
             {
@@ -529,15 +668,12 @@ namespace almond
             var totalTime = Stopwatch.StartNew();
             for (int loop = 0; loop < loops; loop++)
             {
-                //c -= 0.0001f;
-
                 if (token.IsCancellationRequested) return;
-                this.Invoke(() => { this.ClientSize = new DrawingSize(width, height); });
+                this.Invoke(() => { this.ClientSize = new DrawingSize(size, size); });
 
                 if (reletiveC) c = MathF.PI * 2 / size;
                 subStep = timeStep / 10;
 
-                //setPixel(10, 10, DrawingColor.Red);
                 var options = new ParallelOptions
                 {
                     MaxDegreeOfParallelism = Environment.ProcessorCount / 2
@@ -550,7 +686,7 @@ namespace almond
                 if (loop % (int)(loops / 10 + 1) == 0)
                 {
                     long time = totalTime.ElapsedMilliseconds;
-                    //Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
+                    if (!explorer) Console.WriteLine($"Simulating frame: {loop} / {loops} at: T = {formatTime(time)} | DT = {formatTime(time - prevTime)}.");
                     prevTime = totalTime.ElapsedMilliseconds;
                 }
                 Parallel.For(0, localSize, options, i =>
@@ -562,6 +698,12 @@ namespace almond
                     if (i % logStep == 0 && showInfoText) Console.WriteLine($"{i} of {size} rows rendering at: T = {sw.ElapsedMilliseconds}ms");
                 });
                 sw.Stop();
+
+                l0 += l0step;
+                l1 += l1step;
+                m0 += m0step;
+                m1 += m1step;
+
                 frameTime = formatTime(sw.ElapsedMilliseconds);
                 if (showInfoText) Console.WriteLine($"Simulation ended at: T = {frameTime}");
 

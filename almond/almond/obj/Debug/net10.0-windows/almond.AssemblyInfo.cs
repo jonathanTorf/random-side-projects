@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("almond")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+57b4ef78413063236e616ca3e25c1ebcf0c05740")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fdbeb536ff4347ad77063c81b83d92cd85779229")]
 [assembly: System.Reflection.AssemblyProductAttribute("almond")]
 [assembly: System.Reflection.AssemblyTitleAttribute("almond")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
