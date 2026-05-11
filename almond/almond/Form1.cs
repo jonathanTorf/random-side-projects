@@ -23,7 +23,7 @@ namespace almond
     public partial class Form1 : Form
     {
         float c = 0.025f;
-        int renderMode = 0;
+        int renderMode = 2;
         float originalC;
         bool reletiveC = false;
         bool repeating = false;
@@ -54,7 +54,7 @@ namespace almond
         float m0 = 1f;
         float m0step = 0;
         float m1 = 1f;
-        float m1step = 1;
+        float m1step = 0;
         float g = 9.81f;
 
         int centerX = 0;
@@ -92,13 +92,16 @@ namespace almond
             public float dpOmega1;
             public float dpWrapped;
             public int dpFlips;
+            public bool dpFliped;
             public bool initialized;
         }
 
         public Form1()
         {
-            Console.Write("Enter mode('t' for timelaps, 'e' for explorer): ");
+            Console.Write("Enter mode('t' for timelapse, 'e' for explorer): ");
             explorer = getConsoleChar('t', 'e', "Mode") == 'e';
+            Console.Write("Render mode: ");
+            renderMode = getConsoleInt(0, renderMode, "Render mode");
             reletiveC = !explorer;
             saveWebp = !explorer;
             
@@ -108,32 +111,32 @@ namespace almond
 
             if (!explorer)
             {
-                Console.Write("Do telta time(each frame will continue from the previos instad of from 0) [y/n]: ");
+                Console.Write("Do delta time(each frame will continue from the previous instead of from 0) [y/n]: ");
                 doDeltaTime = getConsoleChar('y', 'n', "Do delta time") == 'y';
                 Console.Write("Enter time tick(how long each frame is simulated for): ");
                 simulationTime = getConsoleFloat(0, 10, "Time tick");
                 Console.Write("Enter total ticks(how many frames the program will simulate): ");
                 loops = getConsoleInt(1, 1000000000, "Total ticks");
 
-                Console.Write("Enter l0min(starting length of the first penduloms stick): ");
+                Console.Write("Enter l0min(starting length of the first pendulums stick): ");
                 l0 = getConsoleFloat(0, 1000, "l0min");
                 if (l0 == 0) l0 = 1;
                 else
                 {
-                    Console.Write("Enter l0step(how much length of the first penduloms stick increases by each frame): ");
+                    Console.Write("Enter l0step(how much length of the first pendulums stick increases by each frame): ");
                     l0step = getConsoleFloat(0, 1000, "l0step");
                 }
 
-                Console.Write("Enter l1min(starting length of the second penduloms stick): ");
+                Console.Write("Enter l1min(starting length of the second pendulums stick): ");
                 l1 = getConsoleFloat(0, 1000, "l1min");
                 if (l1 == 0) l1 = 1;
                 else
                 {
-                    Console.Write("Enter l1step(how much length of the second penduloms stick increases by each frame): ");
+                    Console.Write("Enter l1step(how much length of the second pendulums stick increases by each frame): ");
                     l1step = getConsoleFloat(0, 1000, "l1step");
                 }
 
-                Console.Write("Enter m0min(starting weight of the first penduloms ball): ");
+                Console.Write("Enter m0min(starting weight of the first pendulums ball): ");
                 m0 = getConsoleFloat(0, 1000, "l0min");
                 if (m0 == 0) m0 = 1;
                 else
@@ -142,7 +145,7 @@ namespace almond
                     m0step = getConsoleFloat(0, 1000, "l0step");
                 }
 
-                Console.Write("Enter m1min(starting weight of the first penduloms ball): ");
+                Console.Write("Enter m1min(starting weight of the first pendulums ball): ");
                 m1 = getConsoleFloat(0, 1000, "l0min");
                 if (m1 == 0) m1 = 1;
                 else
@@ -456,6 +459,7 @@ namespace almond
         {
             float theta0, theta1, omega0, omega1, v0, v1, prevWrapped;
             int flips;
+            bool flipped = false;
             int index = ci + cj * size;
             float Wrap(float a) => MathF.Atan2(MathF.Sin(a), MathF.Cos(a));
 
@@ -495,7 +499,9 @@ namespace almond
                 v1 = d.dpV1;
                 prevWrapped = d.dpWrapped;
                 flips = d.dpFlips;
+                flipped = d.dpFliped;
             }
+            if (flipped && renderMode == 1) return;
 
             float localSubStep = subStep;
 
@@ -530,8 +536,16 @@ namespace almond
                     float currWrapped = Wrap(theta0);
                     float delta = currWrapped - prevWrapped;
 
-                    if (delta > MathF.PI) flips--;
-                    if (delta < -MathF.PI) flips++;
+                    if (delta > MathF.PI)
+                    {
+                        flips--;
+                        flipped = true;
+                    }
+                    if (delta < -MathF.PI)
+                    {
+                        flips++;
+                        flipped = true;
+                    }
 
                     prevWrapped = currWrapped;
                 }
@@ -551,11 +565,18 @@ namespace almond
                     calcColor(hue, ci, cj);
                     break;
                 case 1:
-                    if (flips != 0) setPixel(ci, cj, DrawingColor.Red);
+                    if (flipped) setPixel(ci, cj, DrawingColor.Red);
+                    else setPixel(ci, cj, DrawingColor.White);
+                    break;
+                case 2:
+                    if (theta0 > 0 && theta1 > 0) setPixel(ci, cj, DrawingColor.Red);
+                    else if (theta0 < 0 && theta1 > 0) setPixel(ci, cj, DrawingColor.Blue);
+                    else if (theta0 > 0 && theta1 < 0) setPixel(ci, cj, DrawingColor.Green);
+                    else if (theta0 < 0 && theta1 < 0) setPixel(ci, cj, DrawingColor.Yellow);
                     else setPixel(ci, cj, DrawingColor.White);
                     break;
             }
-            
+
 
             dpDataList[index] = new dpData
             {
@@ -567,6 +588,7 @@ namespace almond
                 dpV1 = v1,
                 dpWrapped = wrapped,
                 dpFlips = flips,
+                dpFliped = flipped,
                 initialized = true
             };
         }
