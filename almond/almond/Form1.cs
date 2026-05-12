@@ -399,6 +399,25 @@ namespace almond
                     Console.WriteLine($"Size increased to {size}");
                     cs();
                 }
+
+                else if (e.KeyCode == Keys.NumPad0)
+                {
+                    Console.WriteLine("Render mode changed to 0");
+                    renderMode = 0;
+                    cs();
+                }
+                else if (e.KeyCode == Keys.NumPad1)
+                {
+                    Console.WriteLine("Render mode changed to 1");
+                    renderMode = 1;
+                    cs();
+                }
+                else if (e.KeyCode == Keys.NumPad2)
+                {
+                    Console.WriteLine("Render mode changed to 2");
+                    renderMode = 2;
+                    cs();
+                }
             }
         }
 
